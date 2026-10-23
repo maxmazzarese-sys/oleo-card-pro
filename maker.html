@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CardArt Pro Maker</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0a0a0f; color: #f5f5f7; margin: 0; padding: 20px; }
+  h1 { text-align: center; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  canvas { background: #1c1c1e; border-radius: 16px; display: block; margin: 20px auto; max-width: 100%; }
+  .controls { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 20px 0; }
+  input, button, select { padding: 10px 16px; border-radius: 8px; border: none; background: #1c1c1e; color: white; }
+  button { background: #0071e3; cursor: pointer; font-weight: 600; }
+  button:hover { background: #0077ed; }
+  .preview-label { text-align: center; color: #a1a1aa; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>CardArt Pro Maker</h1>
+    <p style="text-align:center; color:#a1a1aa;">Upload an image, add a network logo, and export a 1536×969 card skin.</p>
+    
+    <div class="controls">
+      <input type="file" id="upload" accept="image/*">
+      <select id="network">
+        <option value="">No logo</option>
+        <option value="visa">Visa</option>
+        <option value="mastercard">Mastercard</option>
+        <option value="amex">Amex</option>
+      </select>
+      <button id="export">Export PNG (1536×969)</button>
+    </div>
+    
+    <canvas id="canvas" width="768" height="484"></canvas>
+    <div class="preview-label">Preview (scaled). Export is full 1536×969.</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const upload = document.getElementById('upload');
+    const networkSelect = document.getElementById('network');
+    let bgImage = null;
+
+    canvas.style.width = '768px';
+    canvas.style.height = '484px';
+
+    function drawCard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#1a1a2e';
+      roundRect(ctx, 0, 0, canvas.width, canvas.height, 24);
+      ctx.fill();
+
+      if (bgImage) {
+        const scale = Math.max(canvas.width / bgImage.width, canvas.height / bgImage.height);
+        const x = (canvas.width - bgImage.width * scale) / 2;
+        const y = (canvas.height - bgImage.height * scale) / 2;
+        ctx.save();
+        roundRect(ctx, 0, 0, canvas.width, canvas.height, 24);
+        ctx.clip();
+        ctx.drawImage(bgImage, x, y, bgImage.width * scale, bgImage.height * scale);
+        ctx.restore();
+      }
+
+      const logo = networkSelect.value;
+      if (logo) {
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 28px system-ui';
+        ctx.textAlign = 'right';
+        ctx.fillText(logo.toUpperCase(), canvas.width - 30, canvas.height - 40);
+      }
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    upload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const img = new Image();
+      img.onload = () => {
+        bgImage = img;
+        drawCard();
+      };
+      img.src = URL.createObjectURL(file);
+    });
+
+    networkSelect.addEventListener('change', drawCard);
+
+    document.getElementById('export').addEventListener('click', () => {
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = 1536;
+      exportCanvas.height = 969;
+      const ectx = exportCanvas.getContext('2d');
+      
+      ectx.fillStyle = '#1a1a2e';
+      ectx.fillRect(0, 0, 1536, 969);
+      
+      if (bgImage) {
+        const scale = Math.max(1536 / bgImage.width, 969 / bgImage.height);
+        const x = (1536 - bgImage.width * scale) / 2;
+        const y = (969 - bgImage.height * scale) / 2;
+        ectx.drawImage(bgImage, x, y, bgImage.width * scale, bgImage.height * scale);
+      }
+      
+      const logo = networkSelect.value;
+      if (logo) {
+        ectx.fillStyle = 'white';
+        ectx.font = 'bold 48px system-ui';
+        ectx.textAlign = 'right';
+        ectx.fillText(logo.toUpperCase(), 1500, 900);
+      }
+      
+      const link = document.createElement('a');
+      link.download = 'cardart-pro-skin.png';
+      link.href = exportCanvas.toDataURL('image/png');
+      link.click();
+    });
+
+    drawCard();
+  </script>
+</body>
+</html>
